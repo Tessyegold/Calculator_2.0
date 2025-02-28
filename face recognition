@@ -1,0 +1,46 @@
+import streamlit as st
+import cv2
+
+import numpy as np
+from PIL import Image
+!pip install opencv-python
+# Load the pre-trained face detection model
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+# Streamlit app
+st.title("Face Detection App using Viola-Jones Algorithm")
+st.write("Upload an image, and the app will detect faces using the Viola-Jones algorithm.")
+
+# Upload image
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
+
+# Color picker for rectangle color
+rect_color = st.color_picker("Pick a color for the face detection box", "#FF0000")
+rect_color = tuple(int(rect_color[i:i+2], 16) for i in (1, 3, 5))  # Convert hex to RGB
+
+# Adjust minNeighbors
+min_neighbors = st.slider("Adjust minNeighbors (higher value means stricter detection)", 1, 10, 5)
+
+# Adjust scaleFactor
+scale_factor = st.slider("Adjust scaleFactor (smaller values detect more faces)", 1.01, 2.0, 1.1, step=0.01)
+
+if uploaded_file is not None:
+    image = Image.open(uploaded_file)
+    image_np = np.array(image.convert("RGB"))
+    gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
+
+    # Detect faces
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=scale_factor, minNeighbors=min_neighbors)
+
+    # Draw rectangles around faces
+    for (x, y, w, h) in faces:
+        cv2.rectangle(image_np, (x, y), (x+w, y+h), rect_color, 2)
+# Convert to displayable format
+    result_image = Image.fromarray(image_np)
+    st.image(result_image, caption="Detected Faces", use_column_width=True)
+
+    # Save the processed image
+    if st.button("Save Image"):
+        save_path = "detected_faces.png"
+        cv2.imwrite(save_path, cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR))
+        st.success(f"Image saved successfully as {save_path}")
